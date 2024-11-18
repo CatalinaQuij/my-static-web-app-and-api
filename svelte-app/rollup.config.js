@@ -8,7 +8,7 @@ import replace from '@rollup/plugin-replace';
 
 const production = !process.env.ROLLUP_WATCH;
 const api = 'http://localhost:7071/api';
-const API = process.env.API || production ? '/api' : api;
+const API = process.env.API || (production ? '/api' : api);
 
 export default {
   input: 'src/main.js',
@@ -20,7 +20,6 @@ export default {
   },
   plugins: [
     replace({
-      // 2 level deep object should be stringify
       process: JSON.stringify({
         env: {
           isProd: production,
@@ -31,35 +30,18 @@ export default {
     }),
     svelte({
       compilerOptions: {
-        // enable run-time checks when not in production
-        dev: !production
-      }
+        dev: !production,
+      },
+      emitCss: true,
     }),
-    // we'll extract any component CSS out into
-    // a separate file - better for performance
     postcss({ extract: 'bundle.css' }),
-
-    // If you have external dependencies installed from
-    // npm, you'll most likely need these plugins. In
-    // some cases you'll need additional configuration -
-    // consult the documentation for details:
-    // https://github.com/rollup/plugins/tree/master/packages/commonjs
     resolve({
       browser: true,
       dedupe: ['svelte'],
     }),
     commonjs(),
-
-    // In dev mode, call `npm run start` once
-    // the bundle has been generated
     !production && serve(),
-
-    // Watch the `public` directory and refresh the
-    // browser on changes when not in production
     !production && livereload('public'),
-
-    // If we're building for production (npm run build
-    // instead of npm run dev), minify
     production && terser(),
   ],
   watch: {

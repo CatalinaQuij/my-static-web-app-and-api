@@ -1,30 +1,29 @@
 import { writable } from 'svelte/store';
 
-const state = {
-  products: writable([]),
-};
+const products = writable([]);
 
-const getProducts = (products) => {
-  state.products.update((old) => products);
+const setProducts = (newProducts) => {
+  products.set(newProducts);
 };
 
 const addProduct = (product) => {
-  state.products.update((old) => {
-    old.unshift(product);
-    return old;
-  });
+  products.update((currentProducts) => [product, ...currentProducts]);
 };
 
 const deleteProduct = (product) => {
-  state.products.update((old) => [...old.filter((v) => v.id !== product.id)]);
+  products.update((currentProducts) => 
+    currentProducts.filter((v) => v.id !== product.id)
+  );
 };
 
 const updateProduct = (product) => {
-  state.products.update((old) => {
-    const index = old.findIndex((v) => v.id === product.id);
-    old.splice(index, 1, product);
-    return [...old];
+  products.update((currentProducts) => {
+    const index = currentProducts.findIndex((v) => v.id === product.id);
+    if (index !== -1) {
+      currentProducts[index] = product;
+    }
+    return [...currentProducts]; 
   });
 };
 
-export { state, addProduct, getProducts, updateProduct, deleteProduct };
+export { products, setProducts, addProduct, deleteProduct, updateProduct };

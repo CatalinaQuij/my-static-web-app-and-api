@@ -3,17 +3,9 @@
   import { ListHeader, Modal } from '../components';
   import ProductList from './ProductList.svelte';
   import ProductDetail from './ProductDetail.svelte';
-  import {
-    state,
-    getProductsAction,
-    deleteProductAction,
-    addProductAction,
-    updateProductAction
-  } from '../store';
+  import { products, addProduct, deleteProduct, updateProduct, setProducts } from '../store';
 
-  const { products } = state;
-
-  let selected = undefined;
+  let selected = {};
   let routePath = '/products';
   let title = 'Products';
   let productToDelete = null;
@@ -22,6 +14,21 @@
 
   onMount(async () => await getProducts());
 
+  async function getProducts() {
+    try {
+      const response = await fetch('/api/products');
+      const productsData = await response.json();
+      if (Array.isArray(productsData)) {
+        setProducts(productsData);
+      } else {
+        throw new Error('Invalid products data');
+      }
+    } catch (error) {
+      console.error(error);
+      message = 'Error loading products.';
+    }
+  }
+
   function enableAddMode() {
     selected = {};
   }
@@ -29,9 +36,7 @@
   function askToDelete({ detail: product }) {
     productToDelete = product;
     showModal = true;
-    if (productToDelete.name) {
-      message = `Would you like to delete ${productToDelete.name}?`;
-    }
+    message = productToDelete?.name ? `Would you like to delete ${productToDelete.name}?` : 'Are you sure?';
   }
 
   function clear() {
@@ -42,25 +47,21 @@
     showModal = false;
   }
 
-  async function deleteProduct() {
+  async function handleDeleteProduct() {
     closeModal();
     if (productToDelete) {
       console.log(`You said you want to delete ${productToDelete.name}`);
-      await deleteProductAction(productToDelete);
+      await deleteProduct(productToDelete);
     }
     clear();
-  }
-
-  async function getProducts() {
-    await getProductsAction();
   }
 
   async function save({ detail: product }) {
     console.log('product changed', product);
     if (product.id) {
-      await updateProductAction(product);
+      await updateProduct(product);
     } else {
-      await addProductAction(product);
+      await addProduct(product);
     }
   }
 
@@ -76,21 +77,24 @@
     {routePath}
     on:add={enableAddMode}
     on:refresh={getProducts} />
+  
   <div class="columns is-multiline is-variable">
-    {#if products}
+    {#if $products && $products.length > 0}
       <div class="column is-8">
-        {#if !selected}
-          <ProductList
-            products={$products}
-            on:deleted={askToDelete}
-            on:selected={select} />
-        {:else}
+        {#if selected && Object.keys(selected).length > 0}
           <ProductDetail
             product={selected}
             on:unselect={clear}
             on:save={save} />
+        {:else}
+          <ProductList
+            products={$products}
+            on:deleted={askToDelete}
+            on:selected={select} />
         {/if}
       </div>
+    {:else}
+      <p>No products available.</p>
     {/if}
   </div>
 
@@ -98,5 +102,5 @@
     {message}
     isOpen={showModal}
     on:handleNo={closeModal}
-    on:handleYes={deleteProduct} />
+    on:handleYes={handleDeleteProduct} />
 </div>
